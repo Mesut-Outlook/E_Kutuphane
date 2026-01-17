@@ -80,7 +80,7 @@ const Home = () => {
         <Box
           sx={{
             width: '100%',
-            minHeight: { xs: 500, md: 600, lg: 700 },
+            minHeight: { xs: 400, md: 480, lg: 520 },
             borderRadius: { xs: '24px', md: '48px' },
             background: isDark
               ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.8) 100%)'
@@ -96,6 +96,7 @@ const Home = () => {
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
+            alignItems: 'center',
             px: { xs: 3, md: 8, lg: 12 },
             mb: { xs: 8, md: 15 }
           }}
@@ -137,8 +138,8 @@ const Home = () => {
           />
 
           {/* Hero Content */}
-          <Box sx={{ maxWidth: 700, position: 'relative', zIndex: 2, textAlign: { xs: 'center', md: 'left' } }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: { xs: 'center', md: 'flex-start' }, gap: 1.5, mb: 3 }}>
+          <Box sx={{ maxWidth: 700, position: 'relative', zIndex: 2, textAlign: 'center', mx: 'auto', py: { xs: 4, md: 6 } }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5, mb: 3 }}>
               <AutoAwesome sx={{ color: theme.palette.primary.main, fontSize: 24 }} />
               <Typography variant="overline" sx={{ letterSpacing: '0.3em', fontWeight: 800, color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)' }}>
                 YEREL MOTOR İLE GÜÇLENDİRİLDİ
@@ -166,14 +167,15 @@ const Home = () => {
                 color: 'text.secondary',
                 fontSize: { xs: '1rem', md: '1.25rem' },
                 lineHeight: 1.6,
-                mb: 6,
+                mb: 5,
                 maxWidth: 520,
-                mx: { xs: 'auto', md: 0 },
+                mx: 'auto',
                 fontWeight: 500
               }}
             >
               E-Kütüphane, PDF ve EPUB koleksiyonunuzu yönetmek için en gelişmiş araçtır. Anında arama, yerel erişim ve inanılmaz hız.
             </Typography>
+
 
             {/* Premium Search Bar */}
             <Box
@@ -187,7 +189,7 @@ const Home = () => {
                 borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
                 p: 1,
                 maxWidth: 600,
-                mx: { xs: 'auto', md: 0 },
+                mx: 'auto',
                 boxShadow: isDark ? '0 20px 50px rgba(0,0,0,0.5)' : '0 10px 30px rgba(0,0,0,0.05)',
                 transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                 '&:focus-within': {
