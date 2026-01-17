@@ -8,8 +8,14 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Library path from environment (for Docker/CasaOS deployment)
+const LIBRARY_PATH = process.env.LIBRARY_PATH || '';
+
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: true, // Allow all origins for local network access
+    credentials: true
+}));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'client/build')));
 
@@ -19,6 +25,8 @@ const dbPath = process.env.DB_PATH
     : path.join(__dirname, 'library.db');
 
 console.log('Veritabanı yolu:', dbPath);
+console.log('Kütüphane yolu:', LIBRARY_PATH || 'Belirtilmedi (lokal mod)');
+
 
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
@@ -238,7 +246,14 @@ app.get('/api/stats', (req, res) => {
     });
 });
 
-// Kitap türü güncelleme (ChatGPT entegrasyonu için)
+// Kütüphane yolunu getir (Docker/CasaOS deployment için)
+app.get('/api/library-path', (req, res) => {
+    res.json({
+        libraryPath: LIBRARY_PATH,
+        isConfigured: !!LIBRARY_PATH
+    });
+});
+
 app.put('/api/books/:id/genre', (req, res) => {
     const { id } = req.params;
     const { genre, description } = req.body;
