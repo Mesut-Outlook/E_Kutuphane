@@ -256,20 +256,22 @@ const BookDetail = () => {
           <Button
             variant="contained"
             startIcon={<Download />}
+            onClick={() => window.open(`${API_URL}/books/${id}/download`, '_blank')}
             sx={{
-              bgcolor: isDark ? 'rgba(30, 41, 59, 0.8)' : 'rgba(15, 23, 42, 0.05)',
-              color: 'text.primary',
+              bgcolor: '#3b82f6',
+              color: '#fff',
               borderRadius: '12px',
               px: 3,
               py: 1.5,
               textTransform: 'none',
               fontWeight: 600,
               gap: 1,
-              '&:hover': { bgcolor: isDark ? '#1e293b' : 'action.hover' }
+              '&:hover': { bgcolor: '#2563eb' }
             }}
           >
-            Dosyayı İndir
+            Kitabı Aç
           </Button>
+
           <Button
             variant="contained"
             sx={{

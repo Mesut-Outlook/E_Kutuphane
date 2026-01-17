@@ -254,6 +254,80 @@ app.get('/api/library-path', (req, res) => {
     });
 });
 
+// Kitap dosyasını indir/aç
+app.get('/api/books/:id/download', (req, res) => {
+    const { id } = req.params;
+
+    db.get('SELECT * FROM books WHERE id = ?', [id], (err, book) => {
+        if (err) {
+            console.error('Veritabanı hatası:', err);
+            return res.status(500).json({ error: err.message });
+        }
+
+        if (!book) {
+            return res.status(404).json({ error: 'Kitap bulunamadı' });
+        }
+
+        let filePath = book.filePath;
+
+        // Docker ortamında yol dönüşümü yap
+        if (LIBRARY_PATH && filePath) {
+            // Windows yolunu Linux yoluna çevir
+            // E:\2. KUTUPHANE\... -> /library/...
+            if (filePath.includes('E:\\')) {
+                filePath = filePath.replace(/^E:\\2\. KUTUPHANE\\?/i, LIBRARY_PATH + '/');
+                filePath = filePath.replace(/\\/g, '/');
+            }
+            // Mac yolunu da dönüştür
+            else if (filePath.includes('/Volumes/Seagate Exp/')) {
+                filePath = filePath.replace(/^\/Volumes\/Seagate Exp\/2\. KUTUPHANE\/?/i, LIBRARY_PATH + '/');
+            }
+        }
+
+        console.log('İndirme isteği:', { id, originalPath: book.filePath, convertedPath: filePath });
+
+        // Dosyanın var olup olmadığını kontrol et
+        if (!fs.existsSync(filePath)) {
+            console.error('Dosya bulunamadı:', filePath);
+            return res.status(404).json({
+                error: 'Dosya bulunamadı',
+                path: filePath,
+                originalPath: book.filePath
+            });
+        }
+
+        // Content-Type belirle
+        const contentTypes = {
+            'pdf': 'application/pdf',
+            'epub': 'application/epub+zip',
+            'mobi': 'application/x-mobipocket-ebook',
+            'azw3': 'application/vnd.amazon.ebook',
+            'txt': 'text/plain',
+            'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        };
+
+        const ext = book.fileExtension?.toLowerCase() || 'pdf';
+        const contentType = contentTypes[ext] || 'application/octet-stream';
+
+        // Dosya adını encode et (Türkçe karakterler için)
+        const fileName = encodeURIComponent(book.fileName || `${book.title}.${ext}`);
+
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Content-Disposition', `inline; filename*=UTF-8''${fileName}`);
+
+        // Dosyayı stream olarak gönder
+        const fileStream = fs.createReadStream(filePath);
+        fileStream.on('error', (streamErr) => {
+            console.error('Dosya okuma hatası:', streamErr);
+            if (!res.headersSent) {
+                res.status(500).json({ error: 'Dosya okunamadı' });
+            }
+        });
+        fileStream.pipe(res);
+    });
+});
+
+// Kitap türü güncelleme (ChatGPT entegrasyonu için)
 app.put('/api/books/:id/genre', (req, res) => {
     const { id } = req.params;
     const { genre, description } = req.body;
@@ -271,6 +345,7 @@ app.put('/api/books/:id/genre', (req, res) => {
             res.json({ message: 'Kitap türü güncellendi', id, genre, description });
         });
 });
+
 
 const { exec } = require('child_process');
 
