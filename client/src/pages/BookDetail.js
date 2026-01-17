@@ -1,559 +1,323 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   Container,
   Typography,
   Box,
-  Paper,
-  Chip,
   Button,
   Grid,
-  Card,
-  CardContent,
-  Divider,
+  Paper,
+  Chip,
   CircularProgress,
-  Alert,
+  Stack,
+  useTheme,
+  Divider,
 } from '@mui/material';
 import {
-  AutoStories,
-  PictureAsPdf,
-  Person,
-  Folder,
-  CalendarToday,
-  Download,
   ArrowBack,
-  Launch,
+  PictureAsPdf,
+  AutoStories,
+  FolderOpen,
+  Schedule,
+  Person,
+  LocalOffer,
+  Download,
+  Folder,
 } from '@mui/icons-material';
-import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+
+const API_URL = '/api';
 
 const BookDetail = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
   const [book, setBook] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchBookDetail();
+    const fetchBook = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(`${API_URL}/books/${id}`);
+        setBook(response.data);
+        setError(null);
+      } catch (err) {
+        console.error('Kitap getirme hatası:', err);
+        setError('Kitap bilgileri yüklenirken bir hata oluştu.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBook();
   }, [id]);
-
-  const fetchBookDetail = async () => {
-    try {
-      const response = await axios.get(`/api/books/${id}`);
-      setBook(response.data);
-    } catch (error) {
-      console.error('Kitap detayı yükleme hatası:', error);
-      setError('Kitap bulunamadı');
-    }
-    setLoading(false);
-  };
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('tr-TR');
-  };
-
-  const getFileIcon = (extension) => {
-    return extension === 'epub' ? <AutoStories /> : <PictureAsPdf />;
-  };
-
-  const getFileColor = (extension) => {
-    return extension === 'epub' ? 'primary' : 'secondary';
-  };
-
-  const extractPath = (fullPath) => {
-    // Windows path formatını parse et
-    const parts = fullPath.split('\\');
-    return parts.slice(0, -1).join('\\');
-  };
-
-  const handleOpenFolder = async () => {
-    try {
-      await axios.post('/api/open-folder', { filePath: book.filePath });
-    } catch (error) {
-      console.error('Klasör açma hatası:', error);
-      alert('Klasör açılırken bir hata oluştu');
-    }
-  };
 
   if (loading) {
     return (
-      <Container maxWidth="md" sx={{ mt: 4, mb: 4, textAlign: 'center' }}>
-        <CircularProgress />
-        <Typography sx={{ mt: 2 }}>Kitap yükleniyor...</Typography>
-      </Container>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh', bgcolor: 'background.default' }}>
+        <CircularProgress sx={{ color: 'primary.main' }} />
+      </Box>
     );
   }
 
   if (error || !book) {
     return (
-      <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error || 'Kitap bulunamadı'}
-        </Alert>
-        <Button onClick={() => navigate('/books')} startIcon={<ArrowBack />}>
-          Kitap Listesine Dön
-        </Button>
-      </Container>
+      <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', color: 'text.primary', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Container maxWidth="sm" sx={{ textAlign: 'center' }}>
+          <Typography variant="h5" gutterBottom>{error || 'Kitap bulunamadı.'}</Typography>
+          <Button component={Link} to="/books" startIcon={<ArrowBack />} sx={{ mt: 2, color: 'primary.main' }}>Listeye Dön</Button>
+        </Container>
+      </Box>
     );
   }
 
-  const isEpub = book.fileExtension === 'epub';
-  const gradientColor = isEpub
-    ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-    : 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
+  const isEpub = book.fileExtension?.toLowerCase() === 'epub';
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      {/* Geri Dönüş Butonu */}
-      <Button
-        onClick={() => navigate(-1)}
-        startIcon={<ArrowBack />}
-        sx={{
-          mb: 3,
-          fontWeight: 600,
-          '&:hover': {
-            transform: 'translateX(-4px)',
-          },
-          transition: 'transform 0.2s',
-        }}
-      >
-        Geri Dön
-      </Button>
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', pb: { xs: 4, md: 10 }, color: 'text.primary', transition: 'background-color 0.3s ease' }}>
+      <Container maxWidth="lg" sx={{ pt: 4 }}>
+        {/* Back Button */}
+        <Button
+          component={Link}
+          to="/books"
+          startIcon={<ArrowBack />}
+          sx={{
+            mb: 4,
+            color: 'text.secondary',
+            textTransform: 'none',
+            fontWeight: 700,
+            fontSize: '0.9rem',
+            '&:hover': { color: 'text.primary' }
+          }}
+        >
+          GERİ DÖN
+        </Button>
 
-      {/* Hero Section */}
-      <Paper
-        elevation={0}
-        sx={{
-          mb: 4,
-          borderRadius: 4,
-          overflow: 'hidden',
-          background: gradientColor,
-          position: 'relative',
-        }}
-      >
-        <Box sx={{ p: 6, position: 'relative' }}>
-          <Grid container spacing={4} alignItems="center">
-            {/* Book Cover Visual */}
-            <Grid item xs={12} md={4}>
-              <Box
-                sx={{
-                  aspectRatio: '3/4',
-                  borderRadius: 3,
-                  background: 'rgba(255,255,255,0.15)',
-                  backdropFilter: 'blur(10px)',
-                  border: '2px solid rgba(255,255,255,0.3)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexDirection: 'column',
-                  p: 4,
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-                }}
-              >
-                {getFileIcon(book.fileExtension)}
-                <Typography
-                  variant="h3"
-                  sx={{
-                    color: 'white',
-                    fontWeight: 700,
-                    mt: 2,
-                    textAlign: 'center',
-                  }}
-                >
-                  {book.fileExtension.toUpperCase()}
-                </Typography>
-              </Box>
-            </Grid>
-
-            {/* Book Info */}
-            <Grid item xs={12} md={8}>
-              <Box sx={{ color: 'white' }}>
-                <Typography
-                  variant="h3"
-                  component="h1"
-                  sx={{
-                    fontWeight: 800,
-                    mb: 2,
-                    textShadow: '0 2px 10px rgba(0,0,0,0.2)',
-                  }}
-                >
-                  {book.title}
-                </Typography>
-
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                  <Person sx={{ mr: 1, fontSize: 28 }} />
-                  <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                    {book.author}
-                  </Typography>
-                </Box>
-
-                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 3 }}>
-                  <Chip
-                    icon={getFileIcon(book.fileExtension)}
-                    label={`${book.fileExtension.toUpperCase()} Dosyası`}
-                    sx={{
-                      background: 'rgba(255,255,255,0.25)',
-                      backdropFilter: 'blur(10px)',
-                      color: 'white',
-                      fontWeight: 700,
-                      fontSize: '1rem',
-                      height: 40,
-                      border: '2px solid rgba(255,255,255,0.3)',
-                      '& .MuiChip-icon': {
-                        color: 'white',
-                        fontSize: 24,
-                      },
-                    }}
-                  />
-                  {book.genre && (
-                    <Chip
-                      label={book.genre}
-                      sx={{
-                        background: 'rgba(255,255,255,0.25)',
-                        backdropFilter: 'blur(10px)',
-                        color: 'white',
-                        fontWeight: 700,
-                        fontSize: '1rem',
-                        height: 40,
-                        border: '2px solid rgba(255,255,255,0.3)',
-                      }}
-                    />
-                  )}
-                </Box>
-
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <CalendarToday sx={{ fontSize: 20 }} />
-                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                    Eklenme Tarihi: {formatDate(book.addedDate)}
-                  </Typography>
-                </Box>
-              </Box>
-            </Grid>
-          </Grid>
-        </Box>
-      </Paper>
-
-      {/* Detay Bilgileri */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        {/* Dosya Bilgileri */}
-        <Grid item xs={12} md={6}>
-          <Card
-            variant="outlined"
-            sx={{
-              height: '100%',
-              borderRadius: 3,
-              border: '2px solid',
-              borderColor: 'divider',
-              transition: 'all 0.3s',
-              '&:hover': {
-                borderColor: isEpub ? '#667eea' : '#f5576c',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-              },
-            }}
-          >
-            <CardContent sx={{ p: 3 }}>
-              <Typography
-                variant="h6"
-                gutterBottom
-                sx={{
-                  fontWeight: 700,
-                  mb: 3,
-                  pb: 2,
-                  borderBottom: '3px solid',
-                  borderImage: gradientColor,
-                  borderImageSlice: 1,
-                }}
-              >
-                📄 Dosya Bilgileri
-              </Typography>
-
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, fontWeight: 600 }}>
-                  Dosya Adı:
-                </Typography>
-                <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                  {book.fileName}
-                </Typography>
-              </Box>
-
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, fontWeight: 600 }}>
-                  Dosya Türü:
-                </Typography>
-                <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                  {book.fileExtension.toUpperCase()}
-                </Typography>
-              </Box>
-
-              <Box>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, fontWeight: 600 }}>
-                  Eklenme Tarihi:
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <CalendarToday sx={{ mr: 1, fontSize: 18, color: 'text.secondary' }} />
-                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                    {formatDate(book.addedDate)}
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Konum Bilgileri */}
-        <Grid item xs={12} md={6}>
-          <Card
-            variant="outlined"
-            sx={{
-              height: '100%',
-              borderRadius: 3,
-              border: '2px solid',
-              borderColor: 'divider',
-              transition: 'all 0.3s',
-              '&:hover': {
-                borderColor: isEpub ? '#667eea' : '#f5576c',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-              },
-            }}
-          >
-            <CardContent sx={{ p: 3 }}>
-              <Typography
-                variant="h6"
-                gutterBottom
-                sx={{
-                  fontWeight: 700,
-                  mb: 3,
-                  pb: 2,
-                  borderBottom: '3px solid',
-                  borderImage: gradientColor,
-                  borderImageSlice: 1,
-                }}
-              >
-                📁 Konum Bilgileri
-              </Typography>
-
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
-                  Klasör Yolu:
-                </Typography>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    p: 2,
-                    borderRadius: 2,
-                    bgcolor: 'grey.50',
-                  }}
-                >
-                  <Folder sx={{ mr: 1, fontSize: 20, mt: 0.5, color: 'text.secondary' }} />
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      wordBreak: 'break-all',
-                      fontSize: '0.85rem',
-                      fontFamily: 'monospace',
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    {extractPath(book.filePath)}
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                    Tam Yol:
-                  </Typography>
-                  <Button
-                    size="small"
-                    startIcon={<Launch />}
-                    onClick={handleOpenFolder}
-                    sx={{
-                      background: gradientColor,
-                      color: 'white',
-                      fontWeight: 600,
-                      textTransform: 'none',
-                      px: 2,
-                      '&:hover': {
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-                      },
-                    }}
-                  >
-                    Konumu Aç
-                  </Button>
-                </Box>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    wordBreak: 'break-all',
-                    fontSize: '0.75rem',
-                    fontFamily: 'monospace',
-                    backgroundColor: 'grey.100',
-                    p: 2,
-                    borderRadius: 2,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  {book.filePath}
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Açıklama (varsa) */}
-      {book.description && (
+        {/* Hero Card */}
         <Paper
           elevation={0}
           sx={{
-            mb: 4,
-            p: 4,
-            borderRadius: 3,
-            border: '2px solid',
+            p: { xs: 3, md: 4 },
+            borderRadius: '24px',
+            background: isDark
+              ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)'
+              : 'linear-gradient(135deg, rgba(255, 255, 255, 0.7) 0%, rgba(241, 245, 249, 0.9) 100%)',
+            border: '1px solid',
             borderColor: 'divider',
+            display: 'flex',
+            flexDirection: { xs: 'column', sm: 'row' },
+            alignItems: { xs: 'flex-start', sm: 'center' },
+            gap: 4,
+            mb: 4
           }}
         >
-          <Typography
-            variant="h6"
-            gutterBottom
+          {/* Icon Container */}
+          <Box
             sx={{
-              fontWeight: 700,
-              mb: 2,
-              pb: 2,
-              borderBottom: '3px solid',
-              borderImage: gradientColor,
-              borderImageSlice: 1,
+              width: 140,
+              height: 180,
+              bgcolor: isDark ? '#fff' : 'action.selected',
+              borderRadius: '16px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              mx: { xs: 'auto', sm: 0 },
+              boxShadow: isDark ? 'none' : 'inset 0 0 20px rgba(0,0,0,0.05)'
             }}
           >
-            📖 Açıklama
-          </Typography>
-          <Typography variant="body1" paragraph sx={{ lineHeight: 1.8 }}>
-            {book.description}
-          </Typography>
+            {isEpub ? (
+              <AutoStories sx={{ fontSize: 60, color: '#3b82f6' }} />
+            ) : (
+              <PictureAsPdf sx={{ fontSize: 60, color: '#f43f5e' }} />
+            )}
+            <Typography sx={{ fontWeight: 900, color: isDark ? '#000' : 'text.primary', mt: 1 }}>
+              {book.fileExtension?.toUpperCase()}
+            </Typography>
+          </Box>
+
+          <Box sx={{ flexGrow: 1, textAlign: { xs: 'center', sm: 'left' } }}>
+            <Typography variant="h4" sx={{ fontWeight: 800, mb: 2, lineHeight: 1.2, fontSize: { xs: '1.75rem', md: '2.125rem' } }}>
+              {book.title}
+            </Typography>
+            <Stack direction="row" spacing={3} alignItems="center" sx={{ flexWrap: 'wrap', gap: 2, justifyContent: { xs: 'center', sm: 'flex-start' } }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
+                <Person sx={{ fontSize: 20 }} />
+                <Typography variant="body2">{book.author || 'Bilinmiyor'}</Typography>
+              </Box>
+              {book.genre && (
+                <Chip
+                  icon={<LocalOffer sx={{ fontSize: '16px !important', color: 'inherit !important' }} />}
+                  label={book.genre}
+                  size="small"
+                  sx={{
+                    bgcolor: isDark ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.1)',
+                    color: '#3b82f6',
+                    fontWeight: 600,
+                    borderRadius: '8px',
+                    px: 0.5
+                  }}
+                />
+              )}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
+                <Schedule sx={{ fontSize: 20 }} />
+                <Typography variant="body2">Ekleme: {new Date(book.createdAt).toLocaleDateString('tr-TR')}</Typography>
+              </Box>
+            </Stack>
+          </Box>
         </Paper>
-      )}
 
-      {/* İşlem Butonları */}
-      <Paper
-        elevation={3}
-        sx={{
-          p: 3,
-          borderRadius: 3,
-          background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-        }}
-      >
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6} md={3}>
-            <Button
-              variant="contained"
-              fullWidth
-              startIcon={<Download />}
-              onClick={() => {
-                alert('Dosya indirme özelliği yakında eklenecek!');
-              }}
+        <Grid container spacing={3}>
+          {/* File Info */}
+          <Grid item xs={12} md={6}>
+            <Paper
+              elevation={0}
               sx={{
-                background: gradientColor,
-                color: 'white',
-                fontWeight: 600,
-                py: 1.5,
-                fontSize: '0.95rem',
-                textTransform: 'none',
-                boxShadow: 'none',
-                '&:hover': {
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-                  transform: 'translateY(-2px)',
-                },
-                transition: 'all 0.2s',
+                p: { xs: 3, md: 4 },
+                height: '100%',
+                borderRadius: '24px',
+                bgcolor: 'background.paper',
+                border: '1px solid',
+                borderColor: 'divider',
               }}
             >
-              Dosyayı İndir
-            </Button>
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Folder sx={{ color: 'primary.main' }} /> Dosya Bilgileri
+              </Typography>
+              <Divider sx={{ mb: 3 }} />
+              <Stack spacing={2.5}>
+                <Box>
+                  <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 600 }}>Dosya Adı:</Typography>
+                  <Typography variant="body2" sx={{ mt: 0.5, wordBreak: 'break-all' }}>{book.fileName}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 600 }}>Dosya Türü:</Typography>
+                  <Typography variant="body2" sx={{ mt: 0.5 }}>{book.fileExtension?.toUpperCase()}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 600 }}>Eklenme Tarihi:</Typography>
+                  <Typography variant="body2" sx={{ mt: 0.5 }}>{new Date(book.createdAt).toLocaleString('tr-TR')}</Typography>
+                </Box>
+              </Stack>
+            </Paper>
           </Grid>
 
-          <Grid item xs={12} sm={6} md={3}>
-            <Button
-              variant="outlined"
-              fullWidth
-              component={Link}
-              to={`/books?author=${encodeURIComponent(book.author)}`}
+          {/* Location Info */}
+          <Grid item xs={12} md={6}>
+            <Paper
+              elevation={0}
               sx={{
-                borderWidth: 2,
-                borderColor: isEpub ? '#667eea' : '#f5576c',
-                color: isEpub ? '#667eea' : '#f5576c',
-                fontWeight: 600,
-                py: 1.5,
-                fontSize: '0.95rem',
-                textTransform: 'none',
-                '&:hover': {
-                  borderWidth: 2,
-                  background: isEpub ? 'rgba(102, 126, 234, 0.1)' : 'rgba(245, 87, 108, 0.1)',
-                  transform: 'translateY(-2px)',
-                },
-                transition: 'all 0.2s',
+                p: { xs: 3, md: 4 },
+                height: '100%',
+                borderRadius: '24px',
+                bgcolor: 'background.paper',
+                border: '1px solid',
+                borderColor: 'divider',
               }}
             >
-              Yazarın Diğer Kitapları
-            </Button>
-          </Grid>
-
-          {book.genre && (
-            <Grid item xs={12} sm={6} md={3}>
-              <Button
-                variant="outlined"
-                fullWidth
-                component={Link}
-                to={`/books?genre=${encodeURIComponent(book.genre)}`}
-                sx={{
-                  borderWidth: 2,
-                  borderColor: isEpub ? '#667eea' : '#f5576c',
-                  color: isEpub ? '#667eea' : '#f5576c',
-                  fontWeight: 600,
-                  py: 1.5,
-                  fontSize: '0.95rem',
-                  textTransform: 'none',
-                  '&:hover': {
-                    borderWidth: 2,
-                    background: isEpub ? 'rgba(102, 126, 234, 0.1)' : 'rgba(245, 87, 108, 0.1)',
-                    transform: 'translateY(-2px)',
-                  },
-                  transition: 'all 0.2s',
-                }}
-              >
-                Aynı Türdeki Kitaplar
-              </Button>
-            </Grid>
-          )}
-
-          <Grid item xs={12} sm={6} md={3}>
-            <Button
-              variant="outlined"
-              fullWidth
-              component={Link}
-              to={`/books?fileType=${book.fileExtension}`}
-              sx={{
-                borderWidth: 2,
-                borderColor: isEpub ? '#667eea' : '#f5576c',
-                color: isEpub ? '#667eea' : '#f5576c',
-                fontWeight: 600,
-                py: 1.5,
-                fontSize: '0.95rem',
-                textTransform: 'none',
-                '&:hover': {
-                  borderWidth: 2,
-                  background: isEpub ? 'rgba(102, 126, 234, 0.1)' : 'rgba(245, 87, 108, 0.1)',
-                  transform: 'translateY(-2px)',
-                },
-                transition: 'all 0.2s',
-              }}
-            >
-              Aynı Formattaki Kitaplar
-            </Button>
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <FolderOpen sx={{ color: 'primary.main' }} /> Konum Bilgileri
+              </Typography>
+              <Divider sx={{ mb: 3 }} />
+              <Stack spacing={2.5}>
+                <Box>
+                  <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 600 }}>Klasör Yolu:</Typography>
+                  <Typography variant="body2" sx={{ mt: 0.5 }}>...</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 600 }}>Tam Yol:</Typography>
+                  <Typography variant="body2" sx={{ mt: 0.5, wordBreak: 'break-all' }}>{book.filePath}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    startIcon={<FolderOpen />}
+                    sx={{
+                      bgcolor: 'action.selected',
+                      color: 'text.primary',
+                      textTransform: 'none',
+                      '&:hover': { bgcolor: 'action.hover' }
+                    }}
+                  >
+                    Konuma Aç
+                  </Button>
+                </Box>
+              </Stack>
+            </Paper>
           </Grid>
         </Grid>
-      </Paper>
-    </Container>
+
+        {/* Action Buttons */}
+        <Box sx={{ mt: 6, display: 'flex', flexWrap: 'wrap', gap: 2, justifyContent: { xs: 'center', md: 'flex-start' } }}>
+          <Button
+            variant="contained"
+            startIcon={<Download />}
+            sx={{
+              bgcolor: isDark ? 'rgba(30, 41, 59, 0.8)' : 'rgba(15, 23, 42, 0.05)',
+              color: 'text.primary',
+              borderRadius: '12px',
+              px: 3,
+              py: 1.5,
+              textTransform: 'none',
+              fontWeight: 600,
+              gap: 1,
+              '&:hover': { bgcolor: isDark ? '#1e293b' : 'action.hover' }
+            }}
+          >
+            Dosyayı İndir
+          </Button>
+          <Button
+            variant="contained"
+            sx={{
+              bgcolor: 'rgba(37, 99, 235, 0.2)',
+              color: '#3b82f6',
+              borderRadius: '12px',
+              px: 3,
+              py: 1.5,
+              textTransform: 'none',
+              fontWeight: 600,
+              '&:hover': { bgcolor: 'rgba(37, 99, 235, 0.3)' }
+            }}
+          >
+            Yazarın Diğer Kitapları
+          </Button>
+          <Button
+            variant="contained"
+            sx={{
+              bgcolor: 'rgba(37, 99, 235, 0.1)',
+              color: '#3b82f6',
+              borderRadius: '12px',
+              px: 3,
+              py: 1.5,
+              textTransform: 'none',
+              fontWeight: 600,
+              '&:hover': { bgcolor: 'rgba(37, 99, 235, 0.2)' }
+            }}
+          >
+            Aynı Türdeki Kitaplar
+          </Button>
+          <Button
+            variant="contained"
+            sx={{
+              bgcolor: 'action.selected',
+              color: 'text.secondary',
+              borderRadius: '12px',
+              px: 3,
+              py: 1.5,
+              textTransform: 'none',
+              fontWeight: 600,
+              '&:hover': { bgcolor: 'action.hover' }
+            }}
+          >
+            Aynı Formattaki Kitaplar
+          </Button>
+        </Box>
+      </Container>
+    </Box>
   );
 };
 

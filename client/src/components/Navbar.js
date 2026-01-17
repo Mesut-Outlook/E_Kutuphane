@@ -8,22 +8,25 @@ import {
   IconButton,
 } from '@mui/material';
 import {
-  Home,
-  LibraryBooks,
-  People,
-  BarChart,
-  MenuBook,
+  AutoAwesome,
+  Star,
+  Brightness4,
+  Brightness7,
 } from '@mui/icons-material';
 import { Link, useLocation } from 'react-router-dom';
+import { useTheme } from '@mui/material/styles';
+import { ColorModeContext } from '../App';
 
 const Navbar = () => {
   const location = useLocation();
+  const theme = useTheme();
+  const colorMode = React.useContext(ColorModeContext);
 
   const navItems = [
-    { path: '/', label: 'Ana Sayfa', icon: <Home /> },
-    { path: '/books', label: 'Kitaplar', icon: <LibraryBooks /> },
-    { path: '/authors', label: 'Yazarlar', icon: <People /> },
-    { path: '/stats', label: 'İstatistikler', icon: <BarChart /> },
+    { path: '/', label: 'Ana Sayfa' },
+    { path: '/books', label: 'Kitaplar' },
+    { path: '/authors', label: 'Yazarlar' },
+    { path: '/stats', label: 'İstatistikler' },
   ];
 
   return (
@@ -31,97 +34,85 @@ const Navbar = () => {
       position="sticky"
       elevation={0}
       sx={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        backdropFilter: 'blur(10px)',
-        borderBottom: '1px solid rgba(255,255,255,0.1)',
+        background: theme.palette.mode === 'dark' ? 'rgba(0, 0, 0, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+        backdropFilter: 'blur(12px)',
+        borderBottom: '1px solid',
+        borderColor: theme.palette.divider,
+        top: 0,
+        zIndex: 1100,
       }}
     >
-      <Toolbar sx={{ py: 1 }}>
-        {/* Logo and Title */}
+      <Toolbar sx={{ py: 1, px: { xs: 2, md: 8 } }}>
         <Box
+          component={Link}
+          to="/"
           sx={{
             display: 'flex',
             alignItems: 'center',
-            mr: 4,
+            textDecoration: 'none',
+            color: 'white',
+            gap: 1.5
           }}
         >
-          <IconButton
-            edge="start"
-            color="inherit"
-            aria-label="logo"
-            sx={{
-              mr: 1.5,
-              background: 'rgba(255,255,255,0.15)',
-              backdropFilter: 'blur(10px)',
-              '&:hover': {
-                background: 'rgba(255,255,255,0.25)',
-                transform: 'scale(1.05)',
-              },
-              transition: 'all 0.2s',
-            }}
-          >
-            <MenuBook />
-          </IconButton>
-
+          <AutoAwesome sx={{ color: theme.palette.primary.main, fontSize: 24 }} />
           <Typography
-            variant="h5"
-            component="div"
+            variant="h6"
             sx={{
               fontWeight: 800,
-              letterSpacing: '-0.5px',
-              textShadow: '0 2px 10px rgba(0,0,0,0.2)',
+              fontSize: '1.25rem',
+              letterSpacing: '-0.02em',
+              color: theme.palette.text.primary,
             }}
           >
             E-Kütüphane
           </Typography>
         </Box>
 
-        {/* Spacer */}
         <Box sx={{ flexGrow: 1 }} />
 
-        {/* Navigation Items */}
-        <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1 }}>
-          {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
+        <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 4, alignItems: 'center' }}>
+          {navItems.map((item) => (
+            <Typography
+              key={item.label}
+              component={Link}
+              to={item.path}
+              sx={{
+                textDecoration: 'none',
+                color: location.pathname === item.path
+                  ? theme.palette.primary.main
+                  : theme.palette.text.secondary,
+                fontSize: '0.9rem',
+                fontWeight: location.pathname === item.path ? 700 : 500,
+                '&:hover': { color: theme.palette.primary.main },
+                transition: 'color 0.2s'
+              }}
+            >
+              {item.label}
+            </Typography>
+          ))}
 
-            return (
-              <Button
-                key={item.path}
-                color="inherit"
-                component={Link}
-                to={item.path}
-                startIcon={item.icon}
-                sx={{
-                  px: 2.5,
-                  py: 1,
-                  borderRadius: 2,
-                  fontWeight: 600,
-                  textTransform: 'none',
-                  fontSize: '0.95rem',
-                  background: isActive
-                    ? 'rgba(255,255,255,0.25)'
-                    : 'rgba(255,255,255,0.1)',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid',
-                  borderColor: isActive
-                    ? 'rgba(255,255,255,0.3)'
-                    : 'rgba(255,255,255,0.15)',
-                  boxShadow: isActive
-                    ? '0 4px 12px rgba(0,0,0,0.15)'
-                    : 'none',
-                  '&:hover': {
-                    background: 'rgba(255,255,255,0.25)',
-                    borderColor: 'rgba(255,255,255,0.4)',
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-                  },
-                  transition: 'all 0.2s',
-                }}
-              >
-                {item.label}
-              </Button>
-            );
-          })}
+          <IconButton
+            onClick={colorMode.toggleColorMode}
+            color="inherit"
+            sx={{ ml: 1, color: theme.palette.text.secondary }}
+          >
+            {theme.palette.mode === 'dark' ? <Brightness7 /> : <Brightness4 />}
+          </IconButton>
+
+          <Button
+            variant="contained"
+            sx={{
+              ml: 2,
+              borderRadius: '8px',
+              textTransform: 'none',
+              fontWeight: 700,
+              px: 3,
+              background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)',
+              '&:hover': { background: '#1d4ed8' }
+            }}
+          >
+            Giriş Yap
+          </Button>
         </Box>
       </Toolbar>
     </AppBar>

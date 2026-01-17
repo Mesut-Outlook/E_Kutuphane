@@ -111,9 +111,9 @@ app.get('/api/books', (req, res) => {
     const params = [];
 
     if (search) {
-        query += ` AND (title LIKE ? OR author LIKE ?)`;
-        countQuery += ` AND (title LIKE ? OR author LIKE ?)`;
-        params.push(`%${search}%`, `%${search}%`);
+        query += ` AND (title LIKE ? OR author LIKE ? OR filePath LIKE ?)`;
+        countQuery += ` AND (title LIKE ? OR author LIKE ? OR filePath LIKE ?)`;
+        params.push(`%${search}%`, `%${search}%`, `%${search}%`);
     }
 
     if (genre) {
@@ -259,6 +259,167 @@ app.put('/api/books/:id/genre', (req, res) => {
 
 const { exec } = require('child_process');
 
+// Hızlı mod ve güvenli mod için tarama limiti
+const SCAN_LIMIT = 10000;
+
+// Klasörü yinelemeli olarak tara
+function scanDirectory(dir, fileList = []) {
+    if (fileList.length > SCAN_LIMIT) return fileList;
+
+    try {
+        const files = fs.readdirSync(dir);
+
+        files.forEach(file => {
+            if (fileList.length > SCAN_LIMIT) return;
+
+            // Gizli dosyaları atla (. ile başlayanlar)
+            if (file.startsWith('.')) return;
+
+            const filePath = path.join(dir, file);
+
+            try {
+                const stat = fs.statSync(filePath);
+
+                if (stat && stat.isDirectory()) {
+                    // node_modules ve benzeri gereksiz klasörleri atla
+                    if (file !== 'node_modules' && file !== '$RECYCLE.BIN' && file !== 'System Volume Information') {
+                        scanDirectory(filePath, fileList);
+                    }
+                } else {
+                    const ext = path.extname(file).toLowerCase().substring(1); // .pdf -> pdf
+                    const supportedExtensions = ['pdf', 'epub', 'mobi', 'azw3', 'docx', 'txt', 'cbr', 'cbz'];
+
+                    if (supportedExtensions.includes(ext)) {
+                        fileList.push({
+                            filePath: filePath,
+                            fileName: file,
+                            fileExtension: ext,
+                            size: stat.size,
+                            modifiedTime: stat.mtime
+                        });
+                    }
+                }
+            } catch (err) {
+                // Dosya erişim hatası, atla
+                // console.error(`Erişim hatası: ${filePath}`, err.message);
+            }
+        });
+    } catch (err) {
+        console.error(`Klasör okuma hatası: ${dir}`, err.message);
+    }
+
+    return fileList;
+}
+
+// Veritabanını Tara ve Güncelle
+app.post('/api/scan', (req, res) => {
+    const { dirPath } = req.body;
+
+    if (!dirPath || !fs.existsSync(dirPath)) {
+        return res.status(400).json({ error: 'Geçersiz klasör yolu' });
+    }
+
+    try {
+        console.log(`Tarama başlıyor: ${dirPath}`);
+        const foundFiles = scanDirectory(dirPath);
+        console.log(`Bulunan dosya sayısı: ${foundFiles.length}`);
+
+        // Veritabanındaki mevcut dosyaları çek
+        db.all('SELECT id, filePath FROM books', [], (err, existingBooks) => {
+            if (err) {
+                return res.status(500).json({ error: 'Veritabanı okuma hatası' });
+            }
+
+            // Map oluştur (Performans için)
+            const existingPaths = new Set(existingBooks.map(b => b.filePath));
+            const foundPaths = new Set(foundFiles.map(f => f.filePath));
+
+            const addedFiles = [];
+            const removedIds = [];
+
+            // 1. Yeni Eklenenleri Bul
+            foundFiles.forEach(file => {
+                if (!existingPaths.has(file.filePath)) {
+                    addedFiles.push(file);
+                }
+            });
+
+            // 2. Silinenleri Bul (Sadece taranan klasör altındakiler için)
+            // Eğer veritabanındaki dosya, taranan klasör (dirPath) içindeyse ama foundPaths'de yoksa silinmiştir.
+            existingBooks.forEach(book => {
+                // Sadece taranan ana dizin altındaki kitapları kontrol et
+                // Windows/Mac yol uyumluluğu için basit bir includes kontrolü
+                if (book.filePath.startsWith(dirPath) && !foundPaths.has(book.filePath)) {
+                    removedIds.push(book.id);
+                }
+            });
+
+            // Veritabanı İşlemleri
+            db.serialize(() => {
+                db.run('BEGIN TRANSACTION');
+
+                // Ekleme Hazırlığı
+                if (addedFiles.length > 0) {
+                    const stmt = db.prepare(`INSERT INTO books 
+                        (title, author, fileName, fileExtension, filePath, addedDate) 
+                        VALUES (?, ?, ?, ?, ?, ?)`);
+
+                    addedFiles.forEach(file => {
+                        // Dosya adından basit başlık/yazar tahmini
+                        // Örn: "George Orwell - 1984.pdf"
+                        let title = file.fileName;
+                        let author = 'Bilinmiyor';
+                        const nameWithoutExt = path.basename(file.fileName, '.' + file.fileExtension);
+
+                        // " - " ayırıcı varsa kullan
+                        const parts = nameWithoutExt.split(' - ');
+                        if (parts.length >= 2) {
+                            author = parts[0].trim();
+                            title = parts.slice(1).join(' - ').trim(); // Geri kalan her şey başlık
+                        } else {
+                            title = nameWithoutExt;
+                        }
+
+                        stmt.run([
+                            title,
+                            author,
+                            file.fileName,
+                            file.fileExtension,
+                            file.filePath,
+                            new Date().toISOString().split('T')[0] // YYYY-MM-DD
+                        ]);
+                    });
+                    stmt.finalize();
+                }
+
+                // Silme İşlemi
+                if (removedIds.length > 0) {
+                    const placeholders = removedIds.map(() => '?').join(',');
+                    db.run(`DELETE FROM books WHERE id IN (${placeholders})`, removedIds);
+                }
+
+                db.run('COMMIT', (commitErr) => {
+                    if (commitErr) {
+                        console.error('Transaction commit error:', commitErr);
+                        return res.status(500).json({ error: 'Veritabanı güncelleme hatası' });
+                    }
+
+                    res.json({
+                        message: 'Tarama tamamlandı',
+                        addedCount: addedFiles.length,
+                        removedCount: removedIds.length,
+                        totalFound: foundFiles.length
+                    });
+                });
+            });
+        });
+
+    } catch (error) {
+        console.error('Tarama genel hatası:', error);
+        res.status(500).json({ error: 'Tarama sırasında beklenmeyen hata oluştu' });
+    }
+});
+
 // Dosya klasörünü aç
 app.post('/api/open-folder', (req, res) => {
     const { filePath } = req.body;
@@ -269,7 +430,7 @@ app.post('/api/open-folder', (req, res) => {
 
     // Windows yolunu MacOS yoluna dönüştür
     let convertedPath = filePath;
-    
+
     if (process.platform === 'darwin') {
         // Windows formatındaki yolu MacOS formatına çevir
         // E:\ -> /Volumes/Seagate Exp/
@@ -281,9 +442,9 @@ app.post('/api/open-folder', (req, res) => {
     // Dosyanın var olup olmadığını kontrol et
     if (!fs.existsSync(convertedPath)) {
         console.error('Dosya bulunamadı:', convertedPath);
-        return res.status(404).json({ 
+        return res.status(404).json({
             error: 'Dosya bulunamadı. Harddisk bağlı olduğundan emin olun.',
-            path: convertedPath 
+            path: convertedPath
         });
     }
 

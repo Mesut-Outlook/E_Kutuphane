@@ -1,376 +1,350 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Button,
-  ButtonBase,
-  Card,
-  CardActionArea,
-  CardContent,
-  Chip,
   Container,
-  Divider,
-  Grid,
   InputAdornment,
   Stack,
   TextField,
   Typography,
+  Grid,
+  useTheme,
 } from '@mui/material';
 import {
-  AutoStories,
-  BarChart,
-  Category,
+  Search as SearchIcon,
+  AutoAwesome,
+  Speed,
+  CloudDone,
+  Security,
   LibraryBooks,
-  People,
-  PictureAsPdf,
-  Search,
+  Person,
+  BarChart,
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
-
-const palette = {
-  midnight: '#0f172a',
-  ocean: '#0b6fa4',
-  teal: '#0f9d58',
-  coral: '#ff6f61',
-  sand: '#f6f7fb',
-};
-
-const statisticCards = (stats) => {
-  const fileTypeCount = (ext) =>
-    stats.fileTypes?.find((item) => item.fileExtension === ext)?.count ?? 0;
-
-  return [
-    {
-      label: 'Toplam Kitap',
-      value: stats.totalBooks?.toLocaleString() || '0',
-      icon: <LibraryBooks sx={{ fontSize: 42, color: palette.ocean }} />,
-      to: '/books',
-    },
-    {
-      label: 'Toplam Yazar',
-      value: stats.totalAuthors?.toLocaleString() || '0',
-      icon: <People sx={{ fontSize: 42, color: palette.teal }} />,
-      to: '/authors',
-    },
-    {
-      label: 'EPUB',
-      value: fileTypeCount('epub').toLocaleString(),
-      icon: <AutoStories sx={{ fontSize: 42, color: palette.teal }} />,
-      to: '/books?fileType=epub',
-    },
-    {
-      label: 'PDF',
-      value: fileTypeCount('pdf').toLocaleString(),
-      icon: <PictureAsPdf sx={{ fontSize: 42, color: palette.coral }} />,
-      to: '/books?fileType=pdf',
-    },
-  ];
-};
 
 const Home = () => {
-  const [stats, setStats] = useState({});
-  const [recentBooks, setRecentBooks] = useState([]);
-  const [genres, setGenres] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
 
-  useEffect(() => {
-    const bootstrap = async () => {
-      try {
-        const [statsRes, booksRes, genresRes] = await Promise.all([
-          axios.get('/api/stats'),
-          axios.get('/api/books?limit=8'),
-          axios.get('/api/genres'),
-        ]);
-        setStats(statsRes.data);
-        setRecentBooks(booksRes.data.books ?? []);
-        setGenres(genresRes.data ?? []);
-      } catch (error) {
-        console.error('Ana sayfa verileri alınamadı:', error);
-      }
-    };
-
-    bootstrap();
-  }, []);
-
-  const heroStats = useMemo(
-    () => [
-      {
-        label: 'Toplam Kitap',
-        value: stats.totalBooks?.toLocaleString() || '0',
-        sub: 'Katalogdaki kayıtlar',
-        href: '/books',
-      },
-      {
-        label: 'Toplam Yazar',
-        value: stats.totalAuthors?.toLocaleString() || '0',
-        sub: 'Farklı yazar sayısı',
-        href: '/authors',
-      },
-      {
-        label: 'Son Eklenenler',
-        value: recentBooks.length.toLocaleString(),
-        sub: 'Bu hafta gelenler',
-        href: '/books?sort=newest',
-      },
-    ],
-    [stats.totalBooks, stats.totalAuthors, recentBooks.length]
-  );
-
-  const featuredBooks = recentBooks.slice(0, 4);
-  const genreList = genres
-    .filter((g) => g.genre)
-    .slice(0, 18)
-    .map((item) => ({
-      ...item,
-      displayCount: item.bookCount?.toLocaleString() ?? '0',
-    }));
-
-  const handleHeroSearch = () => {
+  const handleSearch = () => {
     const query = searchTerm.trim();
-    const href = query ? `/books?search=${encodeURIComponent(query)}` : '/books';
-    window.location.href = href;
+    if (query) {
+      window.location.href = `/books?search=${encodeURIComponent(query)}`;
+    } else {
+      window.location.href = '/books';
+    }
   };
+
+  const features = [
+    { title: 'Işık Hızında', desc: 'Binlerce kitap arasından saniyeler içinde arama yapın.', icon: <Speed sx={{ fontSize: 32, color: theme.palette.primary.main }} /> },
+    { title: 'Yerel Erişim', desc: 'Bulut gerekmez. Kendi yerel arşivinize doğrudan erişin.', icon: <CloudDone sx={{ fontSize: 32, color: theme.palette.primary.main }} /> },
+    { title: 'Güvenli ve Özel', desc: 'Verileriniz her zaman kendi cihazınızda kalır.', icon: <Security sx={{ fontSize: 32, color: theme.palette.primary.main }} /> },
+  ];
+
+  const quickLinks = [
+    { label: 'Kitaplar', icon: <LibraryBooks />, path: '/books' },
+    { label: 'Yazarlar', icon: <Person />, path: '/authors' },
+    { label: 'İstatistikler', icon: <BarChart />, path: '/stats' },
+  ];
 
   return (
     <Box
       sx={{
         minHeight: '100vh',
-        backgroundColor: '#f8fafc',
-        backgroundImage: 'radial-gradient(#e2e8f0 1px, transparent 0)',
-        backgroundSize: '32px 32px',
-        pb: 5,
+        backgroundColor: 'background.default',
+        color: 'text.primary',
+        overflowX: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative',
+        transition: 'background-color 0.3s ease'
       }}
     >
-      <Container maxWidth="xl" sx={{ pt: 3 }}>
-        {/* Compact Hero Section */}
+      {/* Dynamic Background Elements */}
+      <Box sx={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '100vh',
+        background: isDark
+          ? 'radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.1) 0%, transparent 40%), radial-gradient(circle at 90% 80%, rgba(168, 85, 247, 0.05) 0%, transparent 40%)'
+          : 'radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.05) 0%, transparent 40%), radial-gradient(circle at 90% 80%, rgba(168, 85, 247, 0.03) 0%, transparent 40%)',
+        zIndex: 0,
+        pointerEvents: 'none'
+      }} />
+
+      <Container maxWidth="xl" sx={{ pt: { xs: 4, md: 10 }, pb: 10, zIndex: 1, position: 'relative' }}>
+        {/* Responsive Hero Card */}
         <Box
           sx={{
-            borderRadius: 4,
-            p: { xs: 3, md: 4 },
-            background: 'linear-gradient(135deg, #0f172a 0%, #0b6fa4 100%)',
-            color: 'white',
-            boxShadow: '0 10px 40px rgba(15, 37, 73, 0.2)',
-            mb: 4,
+            width: '100%',
+            minHeight: { xs: 500, md: 600, lg: 700 },
+            borderRadius: { xs: '24px', md: '48px' },
+            background: isDark
+              ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.8) 100%)'
+              : 'linear-gradient(135deg, rgba(255, 255, 255, 0.7) 0%, rgba(241, 245, 249, 0.9) 100%)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid',
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+            boxShadow: isDark
+              ? '0 40px 100px rgba(0, 0, 0, 0.7)'
+              : '0 20px 60px rgba(15, 23, 42, 0.1)',
             position: 'relative',
             overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            px: { xs: 3, md: 8, lg: 12 },
+            mb: { xs: 8, md: 15 }
           }}
         >
+          {/* Subtle Ambient Glow inside card */}
+          {isDark && (
+            <Box sx={{
+              position: 'absolute',
+              bottom: '-20%',
+              left: '-10%',
+              width: '60%',
+              height: '60%',
+              background: 'radial-gradient(circle, rgba(37, 99, 235, 0.2) 0%, transparent 60%)',
+              filter: 'blur(100px)',
+              pointerEvents: 'none',
+            }} />
+          )}
+
+          {/* Responsive Adorable Cat Hero Image */}
           <Box
             sx={{
               position: 'absolute',
               top: 0,
-              left: 0,
-              right: 0,
+              right: { xs: -100, md: -50, lg: 0 },
               bottom: 0,
-              backgroundImage: 'radial-gradient(circle at 100% 0%, rgba(255,255,255,0.1) 0%, transparent 50%)',
+              width: { xs: '100%', md: '55%', lg: '50%' },
+              backgroundImage: 'url("/assets/cat_hero.jpg")',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              opacity: isDark ? 0.7 : 0.8,
+              filter: 'blur(3px)',
+              maskImage: {
+                xs: 'linear-gradient(to bottom, transparent 0%, black 100%)',
+                md: 'linear-gradient(to right, transparent 0%, black 40%)'
+              },
+              pointerEvents: 'none',
+              zIndex: 1
             }}
           />
 
-          <Grid container alignItems="center" spacing={3}>
-            <Grid item xs={12} md={7}>
-              <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
-                Hoş geldin!
+          {/* Hero Content */}
+          <Box sx={{ maxWidth: 700, position: 'relative', zIndex: 2, textAlign: { xs: 'center', md: 'left' } }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: { xs: 'center', md: 'flex-start' }, gap: 1.5, mb: 3 }}>
+              <AutoAwesome sx={{ color: theme.palette.primary.main, fontSize: 24 }} />
+              <Typography variant="overline" sx={{ letterSpacing: '0.3em', fontWeight: 800, color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)' }}>
+                YEREL MOTOR İLE GÜÇLENDİRİLDİ
               </Typography>
-              <Typography variant="body1" sx={{ opacity: 0.9, maxWidth: 600 }}>
-                {stats.totalBooks?.toLocaleString()} kitaplık arşivinde keşfe çık.
-              </Typography>
-            </Grid>
-            <Grid item xs={12} md={5}>
-              <Stack direction="row" spacing={1}>
-                <TextField
-                  size="small"
-                  placeholder="Hızlı arama..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Search sx={{ color: 'white' }} />
-                      </InputAdornment>
-                    ),
-                    sx: {
-                      bgcolor: 'rgba(255,255,255,0.15)',
-                      color: 'white',
-                      borderRadius: 2,
-                      '& fieldset': { border: 'none' }
-                    }
-                  }}
-                  sx={{ flex: 1 }}
-                />
-                <Button
-                  variant="contained"
-                  onClick={handleHeroSearch}
-                  sx={{ bgcolor: 'white', color: '#0b6fa4', fontWeight: 'bold', '&:hover': { bgcolor: '#f1f5f9' } }}
-                >
-                  Ara
-                </Button>
-              </Stack>
-            </Grid>
-          </Grid>
+            </Box>
+            <Typography
+              variant="h1"
+              sx={{
+                fontWeight: 900,
+                letterSpacing: '-0.04em',
+                mb: 3,
+                fontSize: { xs: '2.5rem', sm: '3.5rem', md: '5rem' },
+                lineHeight: 1,
+                color: 'text.primary',
+                background: isDark ? 'linear-gradient(to bottom, #fff 60%, rgba(255,255,255,0.7) 100%)' : 'none',
+                WebkitBackgroundClip: isDark ? 'text' : 'none',
+                WebkitTextFillColor: isDark ? 'transparent' : 'inherit'
+              }}
+            >
+              Kitaplarınızı <br /> anında bulun
+            </Typography>
+            <Typography
+              variant="body1"
+              sx={{
+                color: 'text.secondary',
+                fontSize: { xs: '1rem', md: '1.25rem' },
+                lineHeight: 1.6,
+                mb: 6,
+                maxWidth: 520,
+                mx: { xs: 'auto', md: 0 },
+                fontWeight: 500
+              }}
+            >
+              E-Kütüphane, PDF ve EPUB koleksiyonunuzu yönetmek için en gelişmiş araçtır. Anında arama, yerel erişim ve inanılmaz hız.
+            </Typography>
+
+            {/* Premium Search Bar */}
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                background: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(255, 255, 255, 0.8)',
+                backdropFilter: 'blur(20px)',
+                borderRadius: '24px',
+                border: '1px solid',
+                borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                p: 1,
+                maxWidth: 600,
+                mx: { xs: 'auto', md: 0 },
+                boxShadow: isDark ? '0 20px 50px rgba(0,0,0,0.5)' : '0 10px 30px rgba(0,0,0,0.05)',
+                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                '&:focus-within': {
+                  borderColor: theme.palette.primary.main,
+                  background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#fff',
+                  transform: 'translateY(-2px)'
+                }
+              }}
+            >
+              <TextField
+                fullWidth
+                variant="standard"
+                placeholder="Kütüphanenizde arama yapın..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                InputProps={{
+                  disableUnderline: true,
+                  startAdornment: (
+                    <InputAdornment position="start" sx={{ pl: 2, pr: 1.5 }}>
+                      <SearchIcon sx={{ color: theme.palette.text.secondary, fontSize: 24 }} />
+                    </InputAdornment>
+                  ),
+                  sx: {
+                    color: 'text.primary',
+                    fontSize: '1.1rem',
+                    fontWeight: 500,
+                    height: 48
+                  }
+                }}
+              />
+              <Button
+                variant="contained"
+                onClick={handleSearch}
+                sx={{
+                  borderRadius: '16px',
+                  background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)',
+                  textTransform: 'none',
+                  fontWeight: 800,
+                  px: { xs: 3, sm: 5 },
+                  height: 52,
+                  fontSize: '1rem',
+                  boxShadow: '0 8px 24px rgba(37, 99, 235, 0.4)',
+                  '&:hover': {
+                    background: '#1d4ed8',
+                    transform: 'scale(1.02)'
+                  },
+                  transition: 'all 0.2s'
+                }}
+              >
+                Ara
+              </Button>
+            </Box>
+          </Box>
         </Box>
 
-        {/* Stats Row - Top Dashboard */}
-        <Grid container spacing={2} sx={{ mb: 4 }}>
-          {statisticCards(stats).map((card) => (
-            <Grid item xs={6} md={3} key={card.label}>
-              <Card
-                component={Link}
-                to={card.to}
+        {/* Features Section */}
+        <Grid container spacing={4} sx={{ mb: { xs: 8, md: 15 } }}>
+          {features.map((f, i) => (
+            <Grid item xs={12} md={4} key={i}>
+              <Box
                 sx={{
-                  textDecoration: 'none',
-                  borderRadius: 3,
-                  boxShadow: 'none',
-                  border: '1px solid #e2e8f0',
-                  transition: 'all 0.2s',
+                  p: 5,
+                  borderRadius: '32px',
+                  background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
+                  border: '1px solid',
+                  borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+                  height: '100%',
+                  transition: 'all 0.3s',
                   '&:hover': {
-                    transform: 'translateY(-2px)',
-                    borderColor: '#cbd5e1',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+                    background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)',
+                    borderColor: theme.palette.primary.main,
+                    transform: 'translateY(-10px)'
                   }
                 }}
               >
-                <CardContent sx={{ p: '20px !important' }}>
-                  <Stack direction="row" spacing={2} alignItems="center">
-                    <Box
-                      sx={{
-                        p: 1.5,
-                        borderRadius: 2,
-                        bgcolor: '#f1f5f9',
-                        display: 'flex',
-                        color: typeof card.icon.props.sx.color === 'string' ? card.icon.props.sx.color : 'inherit'
-                      }}
-                    >
-                      {React.cloneElement(card.icon, { sx: { fontSize: 24 } })}
-                    </Box>
-                    <Box>
-                      <Typography variant="h5" sx={{ fontWeight: 700, color: '#0f172a' }}>
-                        {card.value}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {card.label}
-                      </Typography>
-                    </Box>
-                  </Stack>
-                </CardContent>
-              </Card>
+                <Box sx={{ mb: 3 }}>{f.icon}</Box>
+                <Typography variant="h5" sx={{ fontWeight: 800, mb: 2, color: 'text.primary' }}>{f.title}</Typography>
+                <Typography variant="body1" sx={{ color: 'text.secondary', lineHeight: 1.6 }}>{f.desc}</Typography>
+              </Box>
             </Grid>
           ))}
         </Grid>
 
-        {/* Stack Layout - Full Width Rows */}
-        <Stack spacing={4}>
-
-          {/* Row 1: Quick Actions & Filters */}
-          <Card sx={{ borderRadius: 3, boxShadow: 'none', border: '1px solid #e2e8f0', p: 1 }}>
-            <Stack direction={{ xs: 'column', md: 'row' }} alignItems="center" spacing={2} sx={{ px: 2, py: 1 }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1, minWidth: 120 }}>
-                <Category color="primary" /> Kütüphane:
-              </Typography>
-              <Stack direction="row" spacing={1} sx={{ flex: 1, overflowX: 'auto', pb: { xs: 1, md: 0 }, width: '100%' }}>
-                <Button component={Link} to="/books?fileType=epub" variant="outlined" size="small" sx={{ borderRadius: 2, borderColor: '#cbd5e1', color: '#475569' }}>
-                  EPUB Kitaplar
-                </Button>
-                <Button component={Link} to="/books?fileType=pdf" variant="outlined" size="small" sx={{ borderRadius: 2, borderColor: '#cbd5e1', color: '#475569' }}>
-                  PDF Dokümanlar
-                </Button>
-                <Button component={Link} to="/books?sort=newest" variant="outlined" size="small" sx={{ borderRadius: 2, borderColor: '#cbd5e1', color: '#475569' }}>
-                  Son Eklenenler
-                </Button>
-                <Button component={Link} to="/authors" variant="outlined" size="small" sx={{ borderRadius: 2, borderColor: '#cbd5e1', color: '#475569' }}>
-                  Tüm Yazarlar
-                </Button>
-              </Stack>
-            </Stack>
-          </Card>
-
-          {/* Row 2: Categories (Horizontal Scroll) */}
-          <Box>
-            <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
-              Kategorilere Göz At
-            </Typography>
-            <Stack direction="row" spacing={1.5} sx={{ overflowX: 'auto', pb: 2, '::-webkit-scrollbar': { height: 6 } }}>
-              {genreList.map((genre) => (
-                <Chip
-                  key={genre.genre}
-                  label={`${genre.genre} (${genre.displayCount})`}
-                  component={Link}
-                  to={`/books?genre=${encodeURIComponent(genre.genre)}`}
-                  clickable
-                  variant="outlined"
-                  sx={{
-                    borderRadius: 2,
-                    borderColor: '#cbd5e1',
-                    bgcolor: 'white',
-                    fontWeight: 500,
-                    '&:hover': { bgcolor: '#f1f5f9', borderColor: '#0b6fa4', color: '#0b6fa4' },
-                    flexShrink: 0
-                  }}
-                />
-              ))}
-            </Stack>
-          </Box>
-
-          {/* Row 3: Recent Books (Full Grid) */}
-          <Box>
-            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-              <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                Son Eklenenler
-              </Typography>
-              <Button component={Link} to="/books" endIcon={<AutoStories />}>
-                Tüm Kitapları İncele
+        {/* Quick Access Area */}
+        <Box sx={{ textAlign: 'center' }}>
+          <Typography variant="h4" sx={{ fontWeight: 800, mb: 6, color: 'text.primary' }}>Hızlı Erişim</Typography>
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={3} justifyContent="center" alignItems="center">
+            {quickLinks.map((link) => (
+              <Button
+                key={link.label}
+                component={Link}
+                to={link.path}
+                startIcon={link.icon}
+                sx={{
+                  borderRadius: '20px',
+                  px: 5,
+                  py: 2,
+                  bgcolor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)',
+                  color: 'text.primary',
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  fontSize: '1.1rem',
+                  border: '1px solid',
+                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                  width: { xs: '100%', sm: 'auto' },
+                  '&:hover': {
+                    bgcolor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)',
+                    borderColor: theme.palette.primary.main
+                  },
+                  transition: 'all 0.2s'
+                }}
+              >
+                {link.label}
               </Button>
-            </Stack>
-
-            <Grid container spacing={3}>
-              {recentBooks.slice(0, 12).map((book) => (
-                <Grid item xs={12} sm={6} md={3} lg={3} key={book.id}>
-                  <Card
-                    component={Link}
-                    to={`/books/${book.id}`}
-                    sx={{
-                      height: '100%',
-                      textDecoration: 'none',
-                      borderRadius: 3,
-                      boxShadow: 'none',
-                      border: '1px solid #e2e8f0',
-                      transition: 'transform 0.2s',
-                      '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 10px 30px rgba(0,0,0,0.06)' }
-                    }}
-                  >
-                    <Box sx={{ height: 160, bgcolor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
-                      <AutoStories sx={{ fontSize: 56 }} />
-                    </Box>
-                    <CardContent sx={{ p: 2 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5, lineHeight: 1.3 }} noWrap>
-                        {book.title}
-                      </Typography>
-                      <Typography variant="caption" display="block" color="text.secondary" noWrap sx={{ mb: 1 }}>
-                        {book.author}
-                      </Typography>
-                      <Stack direction="row" spacing={1}>
-                        <Chip
-                          label={book.fileExtension?.toUpperCase()}
-                          size="small"
-                          sx={{ height: 20, fontSize: '0.65rem', borderRadius: 1, bgcolor: '#e2e8f0' }}
-                        />
-                        {book.genre && (
-                          <Chip
-                            label={book.genre}
-                            size="small"
-                            sx={{ height: 20, fontSize: '0.65rem', borderRadius: 1, maxWidth: 100 }}
-                          />
-                        )}
-                      </Stack>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-          </Box>
-
-        </Stack>
-
+            ))}
+          </Stack>
+        </Box>
       </Container>
+
+      {/* Footer */}
+      <Box
+        sx={{
+          mt: 'auto',
+          py: 10,
+          px: 4,
+          borderTop: '1px solid',
+          borderColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+          background: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 6
+        }}
+      >
+        <Stack direction="row" spacing={6} sx={{ flexWrap: 'wrap', justifyContent: 'center', gap: 4 }}>
+          {['Gizlilik Politikası', 'Kullanım Koşulları', 'İletişim', 'Destek'].map((label) => (
+            <Typography
+              key={label}
+              component={Link}
+              to="#"
+              sx={{
+                textDecoration: 'none',
+                color: 'text.secondary',
+                fontSize: '0.95rem',
+                fontWeight: 600,
+                '&:hover': { color: 'text.primary' }
+              }}
+            >
+              {label}
+            </Typography>
+          ))}
+        </Stack>
+        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600, letterSpacing: '0.05em' }}>
+          © 2024 E-KÜTÜPHANE. TÜM HAKLARI SAKLIDIR.
+        </Typography>
+      </Box>
     </Box>
   );
 };

@@ -1,190 +1,147 @@
 import React, { useState, useEffect } from 'react';
 import {
   Container,
-  Typography,
-  Box,
   Grid,
   Card,
   CardContent,
-  Paper,
+  Typography,
+  Box,
   CircularProgress,
+  Stack,
+  useTheme,
+  Paper,
 } from '@mui/material';
-import {
-  LibraryBooks,
-  People,
-  AutoStories,
-  PictureAsPdf,
-  BarChart,
-} from '@mui/icons-material';
 import {
   PieChart,
   Pie,
   Cell,
-  ResponsiveContainer,
-  BarChart as RechartsBarChart,
+  BarChart as ReBarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   Legend,
+  ResponsiveContainer,
 } from 'recharts';
+import {
+  AutoStories,
+  Category,
+  Storage,
+  People,
+  PieChart as PieChartIcon,
+  BarChart as BarChartIcon,
+} from '@mui/icons-material';
 import axios from 'axios';
 
-const COLORS = ['#1976d2', '#dc004e', '#2e7d32', '#ed6c02', '#9c27b0'];
+const API_URL = '/api';
 
 const Stats = () => {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
   const [stats, setStats] = useState({});
-  const [authors, setAuthors] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [authors, setAuthors] = useState([]);
+
+  const CHART_COLORS = isDark
+    ? ['#6366f1', '#a855f7', '#f43f5e', '#fb923c', '#10b981', '#06b6d4']
+    : ['#4f46e5', '#9333ea', '#e11d48', '#ea580c', '#059669', '#0891b2'];
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    const fetchStats = async () => {
+      try {
+        setLoading(true);
+        const [statsRes, authorsRes] = await Promise.all([
+          axios.get(`${API_URL}/stats`),
+          axios.get(`${API_URL}/authors`),
+        ]);
+        setStats(statsRes.data);
+        setAuthors(authorsRes.data);
+      } catch (err) {
+        console.error('İstatistik getirme hatası:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const fetchData = async () => {
-    try {
-      const [statsResponse, authorsResponse] = await Promise.all([
-        axios.get('/api/stats'),
-        axios.get('/api/authors'),
-      ]);
-      
-      setStats(statsResponse.data);
-      setAuthors(authorsResponse.data.slice(0, 10)); // İlk 10 yazarı al
-    } catch (error) {
-      console.error('Veri yükleme hatası:', error);
-    }
-    setLoading(false);
-  };
+    fetchStats();
+  }, []);
 
   const getFileTypeData = () => {
     if (!stats.fileTypes) return [];
-    
-    return stats.fileTypes.map(ft => ({
+    return stats.fileTypes.map((ft) => ({
       name: ft.fileExtension.toUpperCase(),
       value: ft.count,
-      fullName: ft.fileExtension === 'epub' ? 'EPUB Dosyaları' : 'PDF Dosyaları'
     }));
   };
 
   const getTopAuthorsData = () => {
-    return authors.slice(0, 10).map(author => ({
-      name: author.author.length > 15 ? author.author.substring(0, 15) + '...' : author.author,
-      fullName: author.author,
-      kitapSayisi: author.bookCount
+    return authors.slice(0, 10).map(a => ({
+      name: a.author,
+      kitap: a.bookCount
     }));
-  };
-
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <Paper sx={{ p: 2 }}>
-          <Typography variant="body2">
-            {payload[0].payload.fullName || label}
-          </Typography>
-          <Typography variant="body2" color="primary">
-            {`Kitap Sayısı: ${payload[0].value.toLocaleString()}`}
-          </Typography>
-        </Paper>
-      );
-    }
-    return null;
-  };
-
-  const PieTooltip = ({ active, payload }) => {
-    if (active && payload && payload.length) {
-      return (
-        <Paper sx={{ p: 2 }}>
-          <Typography variant="body2">
-            {payload[0].payload.fullName}
-          </Typography>
-          <Typography variant="body2" color="primary">
-            {`${payload[0].value.toLocaleString()} dosya`}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {`%${((payload[0].value / stats.totalBooks) * 100).toFixed(1)}`}
-          </Typography>
-        </Paper>
-      );
-    }
-    return null;
   };
 
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4, textAlign: 'center' }}>
-        <CircularProgress />
-        <Typography sx={{ mt: 2 }}>İstatistikler yükleniyor...</Typography>
-      </Container>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh', bgcolor: 'background.default' }}>
+        <CircularProgress sx={{ color: 'primary.main' }} />
+      </Box>
     );
   }
 
+  const statCards = [
+    { label: 'Toplam Kitap', value: stats.totalBooks || 0, icon: <AutoStories /> },
+    { label: 'Toplam Yazar', value: stats.totalAuthors || 0, icon: <People /> },
+    { label: 'Dosya Formatları', value: stats.fileTypes?.length || 0, icon: <Storage /> },
+    { label: 'En Çok Kitap', value: authors[0]?.bookCount || 0, icon: <Category /> },
+  ];
+
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Kütüphane İstatistikleri
-      </Typography>
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', pb: { xs: 4, md: 8 }, color: 'text.primary', transition: 'background-color 0.3s ease' }}>
+      <Container maxWidth="lg" sx={{ pt: { xs: 4, md: 6 } }}>
+        <Box sx={{ mb: { xs: 4, md: 6 }, textAlign: 'center' }}>
+          <Typography variant="h3" sx={{ fontWeight: 900, mb: 1, letterSpacing: '-0.02em', fontSize: { xs: '2rem', md: '3rem' } }}>
+            Kütüphane İstatistikleri
+          </Typography>
+          <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+            Koleksiyonunuzun sayısal analizi ve dağılımı
+          </Typography>
+        </Box>
 
-      {/* Genel İstatistikler */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <LibraryBooks sx={{ fontSize: 40, color: 'primary.main', mb: 1 }} />
-              <Typography variant="h4" component="div">
-                {stats.totalBooks?.toLocaleString()}
-              </Typography>
-              <Typography color="text.secondary">Toplam Kitap</Typography>
-            </CardContent>
-          </Card>
+        {/* Top Cards */}
+        <Grid container spacing={3} sx={{ mb: 6 }}>
+          {statCards.map((card) => (
+            <Grid item xs={12} sm={6} md={3} key={card.label}>
+              <Card sx={{ borderRadius: '20px', bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+                <CardContent sx={{ p: 3 }}>
+                  <Stack direction="row" spacing={2.5} alignItems="center">
+                    <Box sx={{
+                      p: 1.5,
+                      borderRadius: '12px',
+                      bgcolor: isDark ? 'rgba(99, 102, 241, 0.1)' : 'rgba(99, 102, 241, 0.05)',
+                      color: 'primary.main',
+                      display: 'flex'
+                    }}>
+                      {React.cloneElement(card.icon, { sx: { fontSize: 24 } })}
+                    </Box>
+                    <Box>
+                      <Typography variant="h5" sx={{ fontWeight: 800 }}>{card.value.toLocaleString()}</Typography>
+                      <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>{card.label}</Typography>
+                    </Box>
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
         </Grid>
-        
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <People sx={{ fontSize: 40, color: 'secondary.main', mb: 1 }} />
-              <Typography variant="h4" component="div">
-                {stats.totalAuthors?.toLocaleString()}
-              </Typography>
-              <Typography color="text.secondary">Toplam Yazar</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <AutoStories sx={{ fontSize: 40, color: 'success.main', mb: 1 }} />
-              <Typography variant="h4" component="div">
-                {stats.fileTypes?.find(ft => ft.fileExtension === 'epub')?.count?.toLocaleString() || 0}
-              </Typography>
-              <Typography color="text.secondary">EPUB Dosyaları</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <PictureAsPdf sx={{ fontSize: 40, color: 'error.main', mb: 1 }} />
-              <Typography variant="h4" component="div">
-                {stats.fileTypes?.find(ft => ft.fileExtension === 'pdf')?.count?.toLocaleString() || 0}
-              </Typography>
-              <Typography color="text.secondary">PDF Dosyaları</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
 
-      {/* Grafikler */}
-      <Grid container spacing={3}>
-        {/* Dosya Türü Dağılımı */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                <BarChart sx={{ mr: 1 }} />
-                Dosya Türü Dağılımı
+        <Grid container spacing={3}>
+          {/* File Types Chart */}
+          <Grid item xs={12} md={5}>
+            <Paper sx={{ p: 4, borderRadius: '24px', bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', height: '100%' }}>
+              <Typography variant="h6" sx={{ fontWeight: 800, mb: 4, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <PieChartIcon sx={{ color: 'primary.main' }} /> Dosya Format Dağılımı
               </Typography>
               <Box sx={{ height: 300 }}>
                 <ResponsiveContainer width="100%" height="100%">
@@ -193,124 +150,74 @@ const Stats = () => {
                       data={getFileTypeData()}
                       cx="50%"
                       cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name} (${(percent * 100).toFixed(1)}%)`}
-                      outerRadius={80}
-                      fill="#8884d8"
+                      innerRadius={60}
+                      outerRadius={100}
+                      paddingAngle={5}
                       dataKey="value"
                     >
                       {getFileTypeData().map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip content={<PieTooltip />} />
+                    <Tooltip
+                      contentStyle={{
+                        borderRadius: '12px',
+                        border: 'none',
+                        backgroundColor: isDark ? '#1e293b' : '#fff',
+                        boxShadow: '0 10px 20px rgba(0,0,0,0.1)',
+                        color: isDark ? '#fff' : '#000'
+                      }}
+                    />
+                    <Legend verticalAlign="bottom" height={36} />
                   </PieChart>
                 </ResponsiveContainer>
               </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+            </Paper>
+          </Grid>
 
-        {/* En Çok Kitabı Olan Yazarlar */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                <People sx={{ mr: 1 }} />
-                En Çok Kitabı Olan Yazarlar (İlk 10)
+          {/* Top Authors Chart */}
+          <Grid item xs={12} md={7}>
+            <Paper sx={{ p: 4, borderRadius: '24px', bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', height: '100%' }}>
+              <Typography variant="h6" sx={{ fontWeight: 800, mb: 4, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <BarChartIcon sx={{ color: 'primary.main' }} /> En Çok Eseri Bulunan Yazarlar
               </Typography>
               <Box sx={{ height: 300 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <RechartsBarChart
-                    data={getTopAuthorsData()}
-                    margin={{
-                      top: 5,
-                      right: 30,
-                      left: 20,
-                      bottom: 5,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis 
-                      dataKey="name" 
-                      angle={-45}
-                      textAnchor="end"
-                      height={100}
-                      fontSize={12}
+                  <ReBarChart data={getTopAuthorsData()} layout="vertical" margin={{ left: 40, right: 30 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke={isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'} />
+                    <XAxis type="number" hide />
+                    <YAxis
+                      dataKey="name"
+                      type="category"
+                      width={100}
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: theme.palette.text.secondary, fontSize: 12, fontWeight: 500 }}
                     />
-                    <YAxis />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Bar dataKey="kitapSayisi" fill="#1976d2" />
-                  </RechartsBarChart>
+                    <Tooltip
+                      cursor={{ fill: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }}
+                      contentStyle={{
+                        borderRadius: '12px',
+                        border: 'none',
+                        backgroundColor: isDark ? '#1e293b' : '#fff',
+                        boxShadow: '0 10px 20px rgba(0,0,0,0.1)',
+                        color: isDark ? '#fff' : '#000'
+                      }}
+                    />
+                    <Bar
+                      dataKey="kitap"
+                      fill={theme.palette.primary.main}
+                      radius={[0, 10, 10, 0]}
+                      barSize={12}
+                    />
+                  </ReBarChart>
                 </ResponsiveContainer>
               </Box>
-            </CardContent>
-          </Card>
+            </Paper>
+          </Grid>
         </Grid>
-      </Grid>
-
-      {/* Detaylı İstatistikler */}
-      <Grid container spacing={3} sx={{ mt: 2 }}>
-        <Grid item xs={12}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Detaylı Bilgiler
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="h5" color="primary">
-                      {stats.totalAuthors && stats.totalBooks ? 
-                        (stats.totalBooks / stats.totalAuthors).toFixed(1) : 0
-                      }
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Yazar Başına Ortalama Kitap
-                    </Typography>
-                  </Box>
-                </Grid>
-                
-                <Grid item xs={12} sm={6} md={3}>
-                  <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="h5" color="secondary">
-                      {stats.fileTypes ? 
-                        Math.max(...stats.fileTypes.map(ft => ft.count)).toLocaleString() : 0
-                      }
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      En Fazla Dosya Türü
-                    </Typography>
-                  </Box>
-                </Grid>
-                
-                <Grid item xs={12} sm={6} md={3}>
-                  <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="h5" color="success.main">
-                      {authors.length > 0 ? authors[0].bookCount.toLocaleString() : 0}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      En Çok Kitaplı Yazar
-                    </Typography>
-                  </Box>
-                </Grid>
-                
-                <Grid item xs={12} sm={6} md={3}>
-                  <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="h5" color="warning.main">
-                      {stats.fileTypes?.length || 0}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Desteklenen Dosya Türü
-                    </Typography>
-                  </Box>
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-    </Container>
+      </Container>
+    </Box>
   );
 };
 
