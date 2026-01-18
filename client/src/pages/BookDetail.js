@@ -164,7 +164,7 @@ const BookDetail = () => {
               )}
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
                 <Schedule sx={{ fontSize: 20 }} />
-                <Typography variant="body2">Ekleme: {new Date(book.createdAt).toLocaleDateString('tr-TR')}</Typography>
+                <Typography variant="body2">Ekleme: {book.addedDate ? new Date(book.addedDate).toLocaleDateString('tr-TR') : '-'}</Typography>
               </Box>
             </Stack>
           </Box>
@@ -199,7 +199,7 @@ const BookDetail = () => {
                 </Box>
                 <Box>
                   <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 600 }}>Eklenme Tarihi:</Typography>
-                  <Typography variant="body2" sx={{ mt: 0.5 }}>{new Date(book.createdAt).toLocaleString('tr-TR')}</Typography>
+                  <Typography variant="body2" sx={{ mt: 0.5 }}>{book.addedDate ? new Date(book.addedDate).toLocaleString('tr-TR') : '-'}</Typography>
                 </Box>
               </Stack>
             </Paper>
