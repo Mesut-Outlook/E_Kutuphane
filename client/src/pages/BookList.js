@@ -198,11 +198,33 @@ const BookList = () => {
                 getOptionLabel={(o) => o.author}
                 value={authors.find(a => a.author === filters.author) || null}
                 onChange={(e, v) => handleFilterChange('author', v?.author || '')}
+                slotProps={{
+                  paper: {
+                    sx: {
+                      minWidth: 350,
+                      maxHeight: 400,
+                    }
+                  },
+                  listbox: {
+                    sx: {
+                      '& .MuiAutocomplete-option': {
+                        whiteSpace: 'nowrap',
+                        overflow: 'visible',
+                        padding: '10px 16px',
+                        fontSize: '0.95rem',
+                      }
+                    }
+                  }
+                }}
                 sx={{
+                  minWidth: 200,
                   '& .MuiOutlinedInput-root': {
                     bgcolor: 'action.hover',
                     borderRadius: '12px',
                     '& fieldset': { border: 'none' }
+                  },
+                  '& .MuiInputBase-input': {
+                    minWidth: '150px !important',
                   }
                 }}
                 renderInput={(params) => <TextField {...params} placeholder="Yazar Seçiniz" />}
@@ -217,16 +239,39 @@ const BookList = () => {
                 getOptionLabel={(o) => o.genre}
                 value={genres.find(g => g.genre === filters.genre) || null}
                 onChange={(e, v) => handleFilterChange('genre', v?.genre || '')}
+                slotProps={{
+                  paper: {
+                    sx: {
+                      minWidth: 300,
+                      maxHeight: 400,
+                    }
+                  },
+                  listbox: {
+                    sx: {
+                      '& .MuiAutocomplete-option': {
+                        whiteSpace: 'nowrap',
+                        overflow: 'visible',
+                        padding: '10px 16px',
+                        fontSize: '0.95rem',
+                      }
+                    }
+                  }
+                }}
                 sx={{
+                  minWidth: 180,
                   '& .MuiOutlinedInput-root': {
                     bgcolor: 'action.hover',
                     borderRadius: '12px',
                     '& fieldset': { border: 'none' }
+                  },
+                  '& .MuiInputBase-input': {
+                    minWidth: '120px !important',
                   }
                 }}
                 renderInput={(params) => <TextField {...params} placeholder="Tür Seçiniz" />}
               />
             </Grid>
+
 
             <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1, flexWrap: 'wrap', gap: 2 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
